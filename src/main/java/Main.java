@@ -21,19 +21,24 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 		AmazonRekognition amazonRekognition = AmazonRekognitionClientBuilder.defaultClient();
 
-		Image testImage = new Image().withBytes(getByteBuffer("testpic.jpg"));
+		indexFace(amazonRekognition, "gagansohanpic.jpg");
+
+	}
+
+	public static void indexFace(AmazonRekognition rekognition, String filePath) throws IOException {
+		Image testImage = new Image().withBytes(getByteBuffer(filePath));
 
 		IndexFacesRequest indexFacesRequest = new IndexFacesRequest()
 				.withImage(testImage)
 				.withQualityFilter(QualityFilter.AUTO)
 				.withMaxFaces(1)
 				.withCollectionId(collectionID)
-				.withExternalImageId("testpic.jpg")
+				.withExternalImageId(filePath)
 				.withDetectionAttributes("DEFAULT");
 
-		IndexFacesResult indexFacesResult = amazonRekognition.indexFaces(indexFacesRequest);
+		IndexFacesResult indexFacesResult = rekognition.indexFaces(indexFacesRequest);
 
-		System.out.println("Results for " + "testpic.jpg");
+		System.out.println("Results for " +  filePath);
 		System.out.println("Faces indexed:");
 		List<FaceRecord> faceRecords = indexFacesResult.getFaceRecords();
 		for (FaceRecord faceRecord : faceRecords) {
