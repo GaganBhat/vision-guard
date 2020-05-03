@@ -6,6 +6,7 @@ import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -36,6 +37,8 @@ public class Main extends Application {
 
 		FileChooser fileChooser = new FileChooser();
 		AtomicReference<String> filePath = new AtomicReference<>("");
+		TextField nameField = new TextField();
+		nameField.setPromptText("Enter Name Here");
 
 		Button fileButton = new Button();
 		fileButton.setText("Choose Image");
@@ -46,18 +49,25 @@ public class Main extends Application {
 		});
 
 		Button indexFace = new Button();
-		indexFace.setText("Index Face");
+		indexFace.setText("Register Face");
 		indexFace.setOnAction(click -> {
 			System.out.println("Indexing Face!");
-			System.out.println("File Path = " + filePath);
-			indexFace(amazonRekognition,filePath.toString(), fileChooser.getTitle());
+			System.out.println("Name Field = " + nameField.getText().replaceAll("\\s", ""));
+			indexFace(amazonRekognition,filePath.toString(), nameField.getText().replaceAll("\\s", ""));
+		});
+
+		Button searchFace = new Button();
+		searchFace.setText("Search Face");
+		searchFace.setOnAction(click -> {
+			System.out.println("Searching for Face!");
+			searchFace(amazonRekognition,filePath.toString());
 		});
 
 		StackPane root = new StackPane();
 		VBox vbox = new VBox(5); // 5 is the spacing between elements in the VBox
-		vbox.getChildren().addAll(fileButton, indexFace);
-		root.getChildren().add(vbox);
+		vbox.getChildren().addAll(fileButton, nameField, indexFace, searchFace);
 		StackPane.setAlignment(vbox, Pos.CENTER);
+		root.getChildren().add(vbox);
 
 		Scene scene = new Scene(root, 300, 250);
 
@@ -68,10 +78,10 @@ public class Main extends Application {
 
 	public static void indexFace(AmazonRekognition rekognition, String filePath, String fileName) {
 		try {
-			Image testImage = new Image().withBytes(getByteBuffer(filePath));
+			Image image = new Image().withBytes(getByteBuffer(filePath));
 
 			IndexFacesRequest indexFacesRequest = new IndexFacesRequest()
-					.withImage(testImage)
+					.withImage(image)
 					.withQualityFilter(QualityFilter.AUTO)
 					.withMaxFaces(1)
 					.withCollectionId(collectionID)
@@ -101,6 +111,31 @@ public class Main extends Application {
 			System.out.println("File Error!");
 			e.printStackTrace();
 		}
+	}
+
+	public static String searchFace(AmazonRekognition rekognition, String filePath){
+		Image image = new Image().withBytes(getByteBuffer(filePath));
+
+		SearchFacesByImageRequest searchFacesByImageRequest = new SearchFacesByImageRequest()
+				.withImage(image)
+				.withQualityFilter(QualityFilter.AUTO)
+				.withMaxFaces(1)
+				.withCollectionId(collectionID);
+
+		SearchFacesByImageResult searchFaceResult = rekognition.searchFacesByImage(searchFacesByImageRequest);
+
+		if(searchFaceResult.getFaceMatches().isEmpty()) {
+			return "No Faces Found!";
+		}
+
+		StringBuilder result = new StringBuilder();
+		for(FaceMatch faceMatch : searchFaceResult.getFaceMatches())
+			result.append("Matched Face Name ").append(faceMatch.getFace().getExternalImageId()).append(" at ").
+					append(faceMatch.getSimilarity()).append("%").append(" confident.\n");
+
+		System.out.println(result.toString());
+
+		return result.toString();
 	}
 
 	public static ByteBuffer getByteBuffer(String fileName) {
